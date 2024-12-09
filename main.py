@@ -13,7 +13,7 @@ llm = ChatGoogleGenerativeAI(
     max_tokens=None,
     timeout=None,
     max_retries=2,
-    api_key="AIzaSyBtQpBgRyi4jneypTye4O4tvprx5riOeNc"  # Replace with your actual API key
+    api_key="AIzaSyBt5q6C62vh4I0XwunBHdcCyqbYHDIFTQc"  # Replace with your actual API key
 )
 
 # Function to generate responses using the Gemini model
