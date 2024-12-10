@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import time
 from langchain_google_genai import ChatGoogleGenerativeAI
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+
 
 # Set the page configuration
 st.set_page_config(layout="wide")  # Enables a wide layout
@@ -16,24 +18,37 @@ llm = ChatGoogleGenerativeAI(
     api_key="AIzaSyBt5q6C62vh4I0XwunBHdcCyqbYHDIFTQc"  # Replace with your actual API key
 )
 
+# Initialize metrics in session state
+if "total_generated_rfps" not in st.session_state:
+    st.session_state["total_generated_rfps"] = 0
+if "total_questions_processed" not in st.session_state:
+    st.session_state["total_questions_processed"] = 0
+if "cumulative_processing_time" not in st.session_state:
+    st.session_state["cumulative_processing_time"] = 0.0
+
+# Initialize session state for proposals
+if "proposals" not in st.session_state:
+    st.session_state["proposals"] = []
+
 # Function to generate responses using the Gemini model
 def generate_responses(df, model, delay=1.0):
     """
     Generate responses using the Gemini model.
     
     Args:
-        df (pd.DataFrame): The input DataFrame with "Question" and "Related Area" columns.
+        df (pd.DataFrame): The input DataFrame with "Question" and "Search Refinement" columns.
         model: The LLM model instance (e.g., ChatGoogleGenerativeAI).
         delay (float): The delay in seconds between API calls to prevent quota exhaustion.
     
     Returns:
         pd.DataFrame: The input DataFrame with an additional "Answer" column containing generated responses.
     """
-    if "Question" not in df.columns or "Related Area" not in df.columns:
-        st.error("The uploaded file must contain 'Question' and 'Related Area' columns.")
+    if "Question" not in df.columns or "Search Refinement" not in df.columns:
+        st.error("The uploaded file must contain 'Question' and 'Search Refinement' columns.")
         return None
 
     responses = []
+    start_time = time.time()  # Start timing the processing
     for question in df["Question"]:
         try:
             print(f"Processing question: {question}")
@@ -52,13 +67,38 @@ def generate_responses(df, model, delay=1.0):
             time.sleep(delay)
 
         except Exception as e:
-            st.error(f"Error generating response for '{question}': {e}")
+            print(e)
+            # st.error(f"Error generating response for '{question}': {e}")
             responses.append(f"Error: {e}")
-    
+    end_time = time.time()  # End timing
     # Add the generated answers to the DataFrame
-    df["Answer"] = responses
-    return df
+    df["Model Response"] = responses
+    processing_time = end_time - start_time
+    return df, processing_time
 
+
+
+# # Function to generate responses using the Gemini model
+# def generate_responses(df, model, delay=1.0):
+#     if "Question" not in df.columns or "Related Area" not in df.columns:
+#         st.error("The uploaded file must contain 'Question' and 'Related Area' columns.")
+#         return None
+
+#     responses = []
+#     start_time = time.time()  # Start timing the processing
+#     for question in df["Question"]:
+#         try:
+#             messages = [{"role": "user", "content": question}]
+#             response = model.invoke(messages)
+#             responses.append(response.content)
+#             time.sleep(delay)  # Add delay to prevent quota exhaustion
+#         except Exception as e:
+#             st.error(f"Error generating response for '{question}': {e}")
+#             responses.append(f"Error: {e}")
+#     end_time = time.time()  # End timing
+
+#     processing_time = end_time - start_time  # Calculate processing time
+#     return responses, processing_time
 
 
 
@@ -284,6 +324,7 @@ if "page" not in st.session_state:
 if "uploaded_file" not in st.session_state:
     st.session_state["uploaded_file"] = None
 
+
 # Navigation Logic
 if st.session_state["page"] == "index":
     # Render Landing Page
@@ -362,7 +403,7 @@ elif st.session_state["page"] == "dashboard":
 
         if st.button("Dashboard", key="dashboard_button_dashboard"):
             st.session_state["page"] = "dashboard"
-        if st.button("Generated RFP", key="generated_rfp_button_dashboard"):
+        if st.button("Generate RFPs", key="generated_rfp_button_dashboard"):
             st.session_state["page"] = "generated_rfp"
 
     # Main content
@@ -377,7 +418,7 @@ elif st.session_state["page"] == "dashboard":
         """, unsafe_allow_html=True)
 
     with col2:
-        if st.button("Generated RFP", key="generated_rfp_button_top"):
+        if st.button("Generate RFP Response", key="generated_rfp_button_top"):
             st.session_state["page"] = "generated_rfp"
 
     # Three Uniform Containers Below the Top Bar
@@ -393,16 +434,52 @@ elif st.session_state["page"] == "dashboard":
     """
 
     with container_col1:
-        st.markdown(container_style.format(title="Total Generated RFPs", value="123", icon="https://img.icons8.com/material-outlined/48/000000/folder-invoices.png"), unsafe_allow_html=True)
+        st.markdown(container_style.format(
+            title="Total Generated RFPs",
+            value=st.session_state["total_generated_rfps"],
+            icon="https://img.icons8.com/material-outlined/48/000000/folder-invoices.png"
+        ), unsafe_allow_html=True)
 
     with container_col2:
-        st.markdown(container_style.format(title="Generated Responses", value="456", icon="https://img.icons8.com/ios/50/000000/reply-arrow.png"), unsafe_allow_html=True)
+        st.markdown(container_style.format(
+            title="Generated Responses",
+            value=st.session_state["total_questions_processed"],
+            icon="https://img.icons8.com/ios/50/000000/reply-arrow.png"
+        ), unsafe_allow_html=True)
 
     with container_col3:
-        st.markdown(container_style.format(title="Average Response Time (MM:SS)", value="02:15", icon="https://img.icons8.com/ios-glyphs/50/000000/stopwatch.png"), unsafe_allow_html=True)
+        # Calculate average response time
+        average_time = (
+            st.session_state["cumulative_processing_time"] / st.session_state["total_generated_rfps"]
+            if st.session_state["total_generated_rfps"] > 0 else 0
+        )
+        st.markdown(container_style.format(
+            title="Average Response Time (MM:SS)",
+            value=time.strftime("%M:%S", time.gmtime(average_time)),
+            icon="https://img.icons8.com/ios-glyphs/50/000000/stopwatch.png"
+        ), unsafe_allow_html=True)
 
     st.subheader("My Proposals")
+    # Display proposals table
+    if st.session_state["proposals"]:
+        proposals_df = pd.DataFrame(st.session_state["proposals"])
 
+        # Sort the dataframe by Submission Date in descending order
+        proposals_df = proposals_df.sort_values(by="Submission Date", ascending=False)
+
+        # Add an edit icon column
+        proposals_df[" "] = ["📝" for _ in range(len(proposals_df))]
+
+        # Configure AgGrid
+        gb = GridOptionsBuilder.from_dataframe(proposals_df)
+        gb.configure_grid_options(domLayout='autoHeight')  # Adjust grid height
+        gb.configure_column(" ", headerName=" ", width=30)  # Adjust column settings
+        grid_options = gb.build()
+
+        # Display AgGrid table
+        AgGrid(proposals_df, gridOptions=grid_options, height=300, theme="streamlit", fit_columns_on_grid_load=True)
+    else:
+        st.info("No proposals yet. Click on 'Generate RFPs' to add a new proposal.")
 # Generated RFP Page
 elif st.session_state["page"] == "generated_rfp":
     with st.sidebar:
@@ -415,7 +492,7 @@ elif st.session_state["page"] == "generated_rfp":
         """, unsafe_allow_html=True)
         if st.button("Dashboard", key="dashboard_button_generated_rfp"):
             st.session_state["page"] = "dashboard"
-        if st.button("Generated RFP", key="generated_rfp_button_generated_rfp"):
+        if st.button("Generate RFPs", key="generated_rfp_button_generated_rfp"):
             st.session_state["page"] = "generated_rfp"
 
     col1, col2 = st.columns([5, 1])
@@ -446,9 +523,31 @@ elif st.session_state["page"] == "generated_rfp":
             with col2_form:
                 preview_button = st.form_submit_button("Preview Questions")
             
+            
             if preview_button and uploaded_file:
                 st.session_state["uploaded_file"] = uploaded_file
                 st.session_state["page"] = "generated_rfp_preview_question"
+
+            if preview_button:
+                if rfp_name and account_name:
+                    # Generate RFP ID and Submission Date
+                    rfp_id = f"{len(st.session_state['proposals']) + 1}"
+                    submission_date = time.strftime("%Y-%m-%d", time.localtime())
+                    
+                    # Append to proposals in session state
+                    st.session_state["proposals"].append({
+                        "RFP ID": rfp_id,
+                        "RFP Name": rfp_name,
+                        "Account Name": account_name,
+                        "Status": "Completed",
+                        "Submission Date": submission_date,
+                    })
+                    print("RFP added successfully! Check the Dashboard for details.")
+                else:
+                    st.error("Please fill in all fields.")
+
+                
+
 
 # Preview Uploaded File Page
 elif st.session_state["page"] == "generated_rfp_preview_question":
@@ -462,8 +561,17 @@ elif st.session_state["page"] == "generated_rfp_preview_question":
         """, unsafe_allow_html=True)
         if st.button("Dashboard", key="dashboard_button_preview"):
             st.session_state["page"] = "dashboard"
-        if st.button("Generated RFP", key="generated_rfp_button_preview"):
+        if st.button("Generate RFPs", key="generated_rfp_button_preview"):
             st.session_state["page"] = "generated_rfp"
+    col1, col2 = st.columns([5, 1])
+
+    with col1:
+        st.markdown("""
+            <div style="text-align: left; font-size: 14px; margin-top: -70px; margin-bottom: 10px;">
+                <strong>Home / Create new RFP</strong><br>
+                <span>Upload RFP</span>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.subheader("Preview Questions")
 
@@ -490,31 +598,41 @@ elif st.session_state["page"] == "generated_rfp_preview_question":
                 st.session_state["preview_df"] = df
 
             # Display the DataFrame
-            st.dataframe(df)
+            st.dataframe(
+                    df,
+                    width=2000,  # Adjust width to fill the screen
+                    height=300,  # Adjust height as needed
+                )
 
         except pd.errors.EmptyDataError:
             st.error("No columns found in the uploaded file. Please upload a valid CSV or Excel file.")
         except Exception as e:
             st.error(f"An unexpected error occurred: {e}")
 
-    # Navigation buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Back", key="back_button_preview"):
-            st.session_state["page"] = "dashboard"
-    with col2:
-        if st.button("Generate RFP", key="generate_rfp_button"):
-            if "preview_df" in st.session_state:
-                st.session_state["page"] = "generate_rfp"
-            else:
-                st.error("No data to generate RFP. Please upload and preview a valid file.")
+        # Create columns for alignment
+        # Create columns for layout
+        col1, col2, col3, col4 = st.columns([1, 1, 4, 2])  # Adjust widths to push buttons to the right
+
+        # Use the last column (col4) for the buttons
+        with col4:
+            col4_1, col4_2 = st.columns([1, 1])  # Adjust ratio for smaller gap
+            with col4_1:
+                if st.button("Back", key="back_button_preview"):
+                    st.session_state["page"] = "dashboard"
+            with col4_2:
+                if st.button("Generate RFPs", key="generate_rfp_button"):
+                    if "preview_df" in st.session_state:
+                        st.session_state["page"] = "generate_rfp"
+                    else:
+                        st.error("No data to generate RFP. Please upload and preview a valid file.")
+
+
 
 
 
 # Generate RFP Responses Page
 elif st.session_state["page"] == "generate_rfp":
     with st.sidebar:
-        # Custom HTML for Menu Heading
         st.markdown("""
             <div style="display: flex; align-items: center; font-size: 18px; margin-bottom: 20px;">
                 <img src="https://img.icons8.com/ios-glyphs/20/menu--v1.png" alt="menu-icon" style="margin-right: 8px;">
@@ -523,38 +641,147 @@ elif st.session_state["page"] == "generate_rfp":
         """, unsafe_allow_html=True)
         if st.button("Dashboard", key="dashboard_button_generate"):
             st.session_state["page"] = "dashboard"
-        if st.button("Generated RFP", key="generated_rfp_button_generate"):
+        if st.button("Generate RFPs", key="generated_rfp_button_generate"):
             st.session_state["page"] = "generated_rfp"
 
-    st.subheader("Generated RFP Answers (Gemini Responses)")
+    col1, col2 = st.columns([5, 1])
+
+    with col1:
+        st.markdown("""
+            <div style="text-align: left; font-size: 14px; margin-top: -70px; margin-bottom: 10px;">
+                <strong>Home / Create new RFP</strong><br>
+                <span>Upload RFP</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+
+    # Check if 'preview_df' exists in session state
     if "preview_df" in st.session_state:
         df = st.session_state["preview_df"]
-        # Generate responses
-        with st.spinner("Generating responses..."):
-            df_with_answers = generate_responses(df, llm)
-            if df_with_answers is not None:
-                st.dataframe(df_with_answers)  # Display the updated DataFrame
-                st.session_state["generated_responses"] = df_with_answers
 
-                # Option to download the file
-                csv = df_with_answers.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="Download Generated Responses",
-                    data=csv,
-                    file_name="generated_responses.csv",
-                    mime="text/csv",
-                )
-                # Navigation buttons
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("Done", key="done_button_generate"):
-                        st.session_state["page"] = "dashboard"
-                # Clear session state and reset the app
-                st.session_state.clear()  # Clear all session state variables
-                st.session_state["page"] = "dashboard"  # Redirect to the initial page
-                # st.experimental_set_query_params(page="index")  # Update query params
-    else:
+        # Validate file size and content
+        if df.shape[0] > 100:
+            st.error("The file contains too many questions. Please limit it to 100 rows.")
+        elif "Question" not in df.columns or "Search Refinement" not in df.columns:
+            st.error("The file must contain 'Question' and 'Search Refinement' columns.")
+        else:
+            # Generate responses
+            with st.spinner("Generating responses..."):
+                df_with_answers, processing_time = generate_responses(df, llm)
+
+                if df_with_answers is not None:
+                    #st.dataframe(df_with_answers)
+                    # Add a Column for Edit Icon (Using Unicode)
+                    df_with_answers[" "] = ["📝" for _ in range(len(df))]  # Add pen with paper icon 
+                    # icon_url = "https://img.icons8.com/ios/50/000000/create.png"
+                    # df_with_answers[" "] = [f'<img src="{icon_url}" alt="edit-icon" style="width:20px;height:20px;">' for _ in range(len(df))]
+
+                    st.dataframe(
+                    df_with_answers,
+                    width=2000,  # Adjust width to fill the screen
+                    height=300,  # Adjust height as needed
+                    ) # Display the updated DataFrame
+                    st.session_state["generated_responses"] = df_with_answers
+
+                    # Update session state metrics
+                    st.session_state["total_generated_rfps"] += 1
+                    st.session_state["total_questions_processed"] += len(df_with_answers)
+                    st.session_state["cumulative_processing_time"] += processing_time
+
+                    # Option to download the file
+                    csv = df_with_answers.to_csv(index=False).encode("utf-8")
+                    # st.download_button(
+                    #     label="Download Generated Responses",
+                    #     data=csv,
+                    #     file_name="generated_responses.csv",
+                    #     mime="text/csv",
+                    # )
+
+
+                    # Create columns for alignment
+                    col1, col2, col3 = st.columns([0.1, 7, 1])  # Adjust proportions to push the button to the right
+
+                    # Add the download button in the rightmost column
+                    with col3:
+                        st.download_button(
+                            label="Export to CSV",
+                            data=csv,
+                            file_name="generated_responses.csv",
+                            mime="text/csv",
+    )
+                    #Clear specific keys and redirect
+                    keys_to_clear = ["uploaded_file","preview_df","generated_responses"]
+                    for key in keys_to_clear:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    # # Display processing stats
+                    # st.write(f"**Processing Time:** {processing_time:.2f} seconds")
+                    # st.write(f"**Total Questions Processed:** {len(df_with_answers)}")
+
+                    # # Navigation buttons
+                    # col1, col2 = st.columns(2)
+                    # with col1:
+                    #     if st.button("Done", key="done_button_generate"):
+                    #         # Clear specific keys and redirect
+                    #         keys_to_clear = ["uploaded_file", "preview_df", "generated_responses"]
+                    #         for key in keys_to_clear:
+                    #             if key in st.session_state:
+                    #                 del st.session_state[key]
+                    #         st.session_state["page"] = "dashboard"
+                    #         st.experimental_rerun()
+else:
         st.error("No data available. Please go back and upload a file.")
+
+
+# # Generate RFP Responses Page
+# elif st.session_state["page"] == "generate_rfp":
+#     with st.sidebar:
+#         # Custom HTML for Menu Heading
+#         st.markdown("""
+#             <div style="display: flex; align-items: center; font-size: 18px; margin-bottom: 20px;">
+#                 <img src="https://img.icons8.com/ios-glyphs/20/menu--v1.png" alt="menu-icon" style="margin-right: 8px;">
+#                 <span>Menu</span>
+#             </div>
+#         """, unsafe_allow_html=True)
+#         if st.button("Dashboard", key="dashboard_button_generate"):
+#             st.session_state["page"] = "dashboard"
+#         if st.button("Generated RFP", key="generated_rfp_button_generate"):
+#             st.session_state["page"] = "generated_rfp"
+
+#     st.subheader("Generated RFP Answers (Gemini Responses)")
+#     if "preview_df" in st.session_state:
+#         df = st.session_state["preview_df"]
+#         # Generate responses
+#         with st.spinner("Generating responses..."):
+#             df_with_answers, processing_time = generate_responses(df, llm)
+#             if df_with_answers is not None:
+#                 st.dataframe(df_with_answers)  # Display the updated DataFrame
+#                 st.session_state["generated_responses"] = df_with_answers
+
+#                 # Update session state metrics
+#                 st.session_state["total_generated_rfps"] += 1
+#                 st.session_state["total_questions_processed"] += len(df_with_answers)
+#                 st.session_state["cumulative_processing_time"] += processing_time
+
+#                 # Option to download the file
+#                 csv = df_with_answers.to_csv(index=False).encode("utf-8")
+#                 st.download_button(
+#                     label="Download Generated Responses",
+#                     data=csv,
+#                     file_name="generated_responses.csv",
+#                     mime="text/csv",
+#                 )
+#                 # Navigation buttons
+#                 col1, col2 = st.columns(2)
+#                 with col1:
+#                     if st.button("Done", key="done_button_generate"):
+#                         st.session_state["page"] = "dashboard"
+#                 # Clear session state and reset the app
+#                 st.session_state.clear()  # Clear all session state variables
+#                 st.session_state["page"] = "dashboard"  # Redirect to the initial page
+#                 # st.experimental_set_query_params(page="index")  # Update query params
+#     else:
+#         st.error("No data available. Please go back and upload a file.")
 
     
     # if "uploaded_file" in st.session_state:
