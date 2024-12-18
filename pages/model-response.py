@@ -163,36 +163,35 @@ else:
     if st.session_state.run_model:
         with st.spinner("Generating responses..."):
             st.session_state.df_with_answers, st.session_state.processing_time = generate_responses(df)
-    if st.session_state.df_with_answers is not None:
-        st.session_state.df_with_answers[" "] = ["📝" for _ in range(len(df))]  # Add pen with paper icon 
-        st.dataframe(
-        st.session_state.df_with_answers,
-        use_container_width=True,
-        # width=2000,  # Adjust width to fill the screen
-        height=400,  # Adjust height as needed
+        if st.session_state.df_with_answers is not None:
+            st.session_state.df_with_answers[" "] = ["📝" for _ in range(len(df))]  # Add pen with paper icon 
+            st.session_state.generated_responses_count += st.session_state.df_with_answers.shape[0]
+            st.session_state.total_generated_rfps += 1
+            st.session_state.my_proposals_df.loc[st.session_state.my_proposals_df["RFP ID"] == st.session_state.rfp_id, 'Status'] = 'Success'
+            # st.session_state.my_proposals_df.loc[st.session_state.my_proposals_df["RFP ID"] == st.session_state.rfp_id, ' '] = 'pages/model-response.py'
+            st.session_state.average_response_time = (st.session_state.average_response_time+st.session_state.processing_time)/2
+            st.session_state.generated_rfps[st.session_state.rfp_id] = st.session_state.df_with_answers.to_dict()
+            st.session_state.run_model = False
+            st.session_state.csv = st.session_state.df_with_answers.to_csv(index=False).encode("utf-8")
+    
+    st.dataframe(
+            st.session_state.df_with_answers,
+            use_container_width=True,
+            # width=2000,  # Adjust width to fill the screen
+            height=400,  # Adjust height as needed
+            )
+    col1, col2, col3 = st.columns([0.1, 7, 2])  # Adjust proportions to push the button to the right
+    with col3:
+        st.download_button(
+            label="Export to CSV",
+            data=st.session_state.csv,
+            file_name="generated_responses.csv",
+            mime="text/csv",
+            use_container_width=True,
+            on_click=None
         )
-        st.session_state.generated_responses_count += st.session_state.df_with_answers.shape[0]
-        st.session_state.total_generated_rfps += 1
-        st.session_state.my_proposals_df.loc[st.session_state.my_proposals_df["RFP ID"] == st.session_state.rfp_id, 'Status'] = 'Success'
-        # st.session_state.my_proposals_df.loc[st.session_state.my_proposals_df["RFP ID"] == st.session_state.rfp_id, ' '] = 'pages/model-response.py'
-        st.session_state.average_response_time = (st.session_state.average_response_time+st.session_state.processing_time)/2
-        st.session_state.generated_rfps[st.session_state.rfp_id] = st.session_state.df_with_answers.to_dict()
-        st.session_state.run_model = False
-        csv = st.session_state.df_with_answers.to_csv(index=False).encode("utf-8")
-        col1, col2, col3 = st.columns([0.1, 7, 2])  # Adjust proportions to push the button to the right
-        with col3:
-            if st.download_button(
-                label="Export to CSV",
-                data=csv,
-                file_name="generated_responses.csv",
-                mime="text/csv",
-                use_container_width=True,
-                on_click=None
-            ):
-                with st.spinner("Downloading..."):
-                    time.sleep(10)
-                st.success("Download Success")
-    else:
-        st.error("No data available. Please go back and upload a file.")
+            # with st.spinner("Downloading..."):
+            #     time.sleep(10)
+            # st.success("Download Success")
     
     

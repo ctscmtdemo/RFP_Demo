@@ -218,6 +218,7 @@ def main():
     st.session_state.processing_time = None
     st.session_state.mp_single_row_selection_callback = False
     st.session_state.selected_rfp_id = None
+    st.session_state.csv = None
     start_page()
 
     
