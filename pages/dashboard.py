@@ -182,30 +182,31 @@ with st.container(border=True,height=500, key="my-proposals"):
 
 
 # Footer Section
-st.markdown("""
-    <style>
-    footer {
-        background-color: #F5FFFA;
-        color: #666;
-        padding: 18px;
-        text-align: left;
-        border-top: solid;
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        height: 20px;
-        left: 0;
-        z-index: 100;
-        justify-content: Left;
-        font-family: 'Roboto', sans-serif;
-        padding-bottom: 40px;
-        padding-top: 10px;
-    }
-            .footh3{
-            font-size: 16px;
+    st.markdown("""
+        <style>
+        footer {
+            background-color: #F5FFFA;
+            color: #666;
+            padding: 18px;
+            text-align: left;
+            border-top: solid;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 20px;
+            left: 0;
+            z-index: 100;
+            justify-content: Left;
             font-family: 'Roboto', sans-serif;
-            }            
-    </style>
-    <footer><h3 class = "footh3">Cognizant<h3></footer>
-""", unsafe_allow_html=True)
+            padding-bottom: 50px;
+            padding-top: 2px;
+            # margin-top: -10px;
+        }
+                .footh3{
+                font-size: 16px;
+                font-family: 'Roboto', sans-serif;
+                }            
+        </style>
+        <footer><h3 class = "footh3">Cognizant<h3></footer>
+    """, unsafe_allow_html=True)
 

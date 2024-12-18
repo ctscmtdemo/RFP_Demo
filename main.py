@@ -65,12 +65,13 @@ def start_page():
         <style>
         .RFP-accelerator-text{
         # width: 820px;
-        margin-top: -140px;
+        margin-top: -100px;
+        # padding-top: 100px;
         text-align: center;
         font-size: 55px;
         font-style: normal;
         font-weight: 400;
-        line-height: 65px;
+        # line-height: 65px;
         position: flex;
         letter-spacing: -2px;
         background: linear-gradient(90deg, #267DF7 0%, #728AEC 38%, #B580D1 67%, #E4576D 93%);
@@ -83,7 +84,7 @@ def start_page():
 
         .icon-container {
             display: inline-block;
-            # margin-top: -30px;
+            margin-top: -100px;
             # margin-right: 100px;
             padding-left: 550px;
             # padding-top: -10px;
@@ -95,8 +96,8 @@ def start_page():
         }
 
         .star-icon {
-            margin-top: -120px;
-            # margin-right: -100px;
+            margin-top: -50px;
+            margin-right: 30px;
             width: 25px;
             height: 25px;
         }
@@ -112,7 +113,7 @@ def start_page():
         <span class="icon-container">
                 <img src="https://rfp-frontend-newuiuxdemo-dot-rfp-automation-genai-demo.uc.r.appspot.com/assets/rfp-text-icon.svg" class="star-icon">
         </span>
-        <div style="align-items: center; justify-content: center; text-align: center;">
+        <div style="align-items: center; justify-content: center; text-align: center; margin-top: -100px;">
         <h1 class="RFP-accelerator-text">
             RFP Accelerator, &nbsp<br>
             Reimagined with AI
@@ -186,8 +187,9 @@ def start_page():
             z-index: 100;
             justify-content: Left;
             font-family: 'Roboto', sans-serif;
-            padding-bottom: 40px;
-            padding-top: 10px;
+            padding-bottom: 50px;
+            padding-top: 2px;
+            # margin-top: -10px;
         }
                 .footh3{
                 font-size: 16px;
