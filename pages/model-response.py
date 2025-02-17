@@ -4,6 +4,7 @@ import time
 import pandas as pd
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+
 @st.cache_data()
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
@@ -129,13 +130,13 @@ def generate_responses(df, delay=1.0):
         max_retries=2,
         api_key= st.secrets["GEMINI_API_KEY"] 
     )
-    if "Question" not in df.columns:
-        st.error("The uploaded file must contain 'Question' scolumn.")
-        return None
+    # if "Question" not in df.columns:
+    #     st.error("The uploaded file must contain 'Question' scolumn.")
+    #     return None
 
     responses = []
     start_time = time.time()  # Start timing the processing
-    for question in df["Question"]:
+    for question in df.iloc[:,0]: #df["Question"]:
         try:
             print(f"Processing question: {question}")
             messages = [{"role": "user", "content": question}]
@@ -155,9 +156,9 @@ def generate_responses(df, delay=1.0):
 df = st.session_state.rfp_sheet_df
 
 if df.shape[0] > 100:
-    st.error("The file contains too many questions. Please limit it to 100 rows.")
-elif "Question" not in df.columns:
-    st.error("The file must contain 'Question' column.")
+    st.error("The file contains too many questions. Please limit it to 100 entries.")
+# elif "Question" not in df.columns:
+#     st.error("The file must contain 'Question' column.")
 else:
     # Generate responses
     if st.session_state.run_model:

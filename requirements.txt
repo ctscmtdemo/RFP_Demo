@@ -5,3 +5,5 @@ streamlit-local-storage
 langchain
 langchain_google_genai
 google-generativeai
+langchain_google_vertexai
+openpyxl
