@@ -130,13 +130,13 @@ col1, col2, col3, col4 = st.columns([1, 1, 4, 4])  # Adjust widths to push butto
 
 # Use the last column (col4) for the buttons
 with col4:
-    col4_1, col4_2 = st.columns([2, 3])  # Adjust ratio for smaller gap
+    col4_1, col4_2 = st.columns([2, 4])  # Adjust ratio for smaller gap
     with col4_1:
         
         if st.button("Back", key="back_button_preview"):
             st.switch_page("main.py")
     with col4_2:
-        if st.button("Generate Responses", key="generate_rfp_button"):
+        if st.button("Generate Responses", key="generate_rfp_button", use_container_width=True):
             st.session_state.run_model = True
             st.switch_page("pages/model-response.py")
         
