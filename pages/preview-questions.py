@@ -130,8 +130,9 @@ col1, col2, col3, col4 = st.columns([1, 1, 4, 4])  # Adjust widths to push butto
 
 # Use the last column (col4) for the buttons
 with col4:
-    col4_1, col4_2 = st.columns([1, 3])  # Adjust ratio for smaller gap
+    col4_1, col4_2 = st.columns([2, 3])  # Adjust ratio for smaller gap
     with col4_1:
+        
         if st.button("Back", key="back_button_preview"):
             st.switch_page("main.py")
     with col4_2:
