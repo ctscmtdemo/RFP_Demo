@@ -123,7 +123,7 @@ unsafe_allow_html=True
 
 def generate_responses(df, delay=1.0):
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="gemini-2.5-flash",
         temperature=0,
         max_tokens=None,
         timeout=None,
@@ -139,7 +139,7 @@ def generate_responses(df, delay=1.0):
     for question in df.iloc[:,0]: #df["Question"]:
         try:
             print(f"Processing question: {question}")
-            messages = [{"role": "user", "content": question}]
+            messages = [{"role": "user", "content": f"Answer the following question in one line. Question : {question}"}]
             response = llm.invoke(messages)
             generated_content = response.content  
             responses.append(generated_content)
