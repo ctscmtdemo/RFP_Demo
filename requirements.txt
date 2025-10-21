@@ -2,8 +2,5 @@ streamlit
 streamlit-screen-stats
 streamlit-browser-session-storage
 streamlit-local-storage
-langchain
-langchain_google_genai
-google-generativeai
-langchain_google_vertexai
 openpyxl
+langchain_google_genai
